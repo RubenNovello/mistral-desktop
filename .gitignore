@@ -1,0 +1,22 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+
+# Build
+dist/
+build/
+target/
+AppDir/
+*.snap
+*.AppImage
+*.dmg
+
+# Rust
+**/*.rs.bk
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

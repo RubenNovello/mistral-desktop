@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Mistral Desktop
+Comment=Client non ufficiale per Mistral AI (Ollama locale o API)
+Exec=mistral-desktop
+Icon=${SNAP}/meta/gui/icon.png
+Terminal=false
+Type=Application
+Categories=Utility;Chat;Development;
+StartupWMClass=mistral-desktop
+Keywords=mistral;ai;chat;ollama;llm;

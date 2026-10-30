@@ -1,0 +1,56 @@
+name: Build installers (Linux / Windows / macOS)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest,   platform: linux   }
+          - { os: windows-latest,  platform: windows }
+          - { os: macos-latest,    platform: macos   }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install PySide6 requests pyinstaller
+      - name: Build con PyInstaller
+        run: pyinstaller --noconfirm --windowed --name MistralDesktop mistral_desktop.py
+
+      # ---- Windows: installer .exe con Inno Setup
+      - if: matrix.platform == 'windows'
+        run: choco install innosetup --yes
+      - if: matrix.platform == 'windows'
+        run: ISCC installer\mistral-desktop.iss
+
+      # ---- macOS: .dmg nativo
+      - if: matrix.platform == 'macos'
+        run: hdiutil create -volname "Mistral Desktop" -srcfolder dist/MistralDesktop.app -ov -format UDZO "MistralDesktop.dmg"
+
+      # ---- Linux: AppImage (linuxdeploy)
+      - if: matrix.platform == 'linux'
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O linuxdeploy
+          chmod +x linuxdeploy
+          mkdir -p AppDir/usr/bin
+          cp -r dist/MistralDesktop/* AppDir/usr/bin/
+          mkdir -p AppDir/usr/share/applications
+          sed -e 's|^Exec=.*|Exec=MistralDesktop|' -e 's|^Icon=.*|Icon=icon.svg|' \
+            snap/gui/mistral-desktop.desktop > AppDir/usr/share/applications/mistral-desktop.desktop
+          cp assets/icon.svg AppDir/
+          ./linuxdeploy --appdir AppDir --desktop-file AppDir/usr/share/applications/mistral-desktop.desktop --output appimage
+          mv MistralDesktop-*.AppImage MistralDesktop.AppImage || true
+
+      - name: Upload nella GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/MistralDesktop-setup.exe
+            MistralDesktop.dmg
+            MistralDesktop.AppImage

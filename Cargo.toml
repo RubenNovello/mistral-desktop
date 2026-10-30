@@ -1,0 +1,13 @@
+[package]
+name = "mistral-desktop-core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "mistral_desktop_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+ureq = { version = "2", features = ["json"] }
+serde_json = "1"
