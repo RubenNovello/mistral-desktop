@@ -1,2 +1,7 @@
 #!/bin/sh
+PLUGDIR=$(find "$SNAP/usr/lib" -type d -path '*PySide6/Qt/plugins' 2>/dev/null | head -n1)
+if [ -n "$PLUGDIR" ]; then
+  export QT_PLUGIN_PATH="$PLUGDIR"
+fi
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 exec "$SNAP/bin/python" "$SNAP/mistral_desktop.py" "$@"
