@@ -28,7 +28,8 @@ Chat con i modelli Mistral direttamente dal tuo desktop — gratis, open source 
 # da Snap Store (appena pubblicato)
 sudo snap install mistral-desktop
 
-# da sorgente
+# da sorgente (Ubuntu/Debian: servono venv e una libreria richiesta da Qt)
+sudo apt install python3-venv libxcb-cursor0
 git clone https://github.com/RubenNovello/mistral-desktop.git
 cd mistral-desktop
 python3 -m venv .venv && source .venv/bin/activate
@@ -36,12 +37,15 @@ pip install PySide6 requests
 python mistral_desktop.py
 ```
 
+Se compare l'errore `Could not load the Qt platform plugin "xcb"`, manca `libxcb-cursor0`
+(comando `apt` qui sopra).
+
 ## ⚡ Core Rust (opzionale, prestazioni massime)
 
 ```bash
 pip install maturin
 maturin build --release
-pip install target/wheels/mistral-desktop-core-*.whl
+pip install target/wheels/*.whl
 ```
 
 L'app rileva il core Rust da sola (vedrai "core: Rust ⚡" nella barra di stato).

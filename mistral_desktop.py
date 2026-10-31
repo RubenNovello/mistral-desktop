@@ -18,6 +18,7 @@ AVVIO RAPIDO:
 scopo identificativo del client. Licenza MIT.
 """
 
+import getpass
 import html as html_mod
 import json
 import os
@@ -26,7 +27,7 @@ from datetime import datetime
 from pathlib import Path
 
 import requests
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import QEvent, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QDoubleSpinBox, QFormLayout,
@@ -70,20 +71,26 @@ except ImportError:
 
 def load_settings() -> dict:
     try:
-        return {**DEFAULT_SETTINGS, **json.loads(CONFIG_PATH.read_text())}
+        return {**DEFAULT_SETTINGS,
+                **json.loads(CONFIG_PATH.read_text(encoding="utf-8"))}
     except Exception:
         return dict(DEFAULT_SETTINGS)
 
 
 def save_settings(settings: dict) -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.write_text(json.dumps(settings, indent=2))
+    CONFIG_PATH.write_text(json.dumps(settings, indent=2, ensure_ascii=False),
+                           encoding="utf-8")
+    try:  # il file contiene la API key: leggibile solo dall'utente
+        os.chmod(CONFIG_PATH, 0o600)
+    except OSError:
+        pass
 
 
 # --------------------------------------------------------------- motori chat
 
-def list_ollama_models(host: str):
-    r = requests.get(f"{host}/api/tags", timeout=5)
+def list_ollama_models(host: str, timeout: float = 5):
+    r = requests.get(f"{host}/api/tags", timeout=timeout)
     r.raise_for_status()
     return sorted(m["name"] for m in r.json().get("models", []))
 
@@ -131,6 +138,9 @@ def stream_mistral(api_key, model, messages, temperature, on_chunk, should_stop)
             if chunk == b"[DONE]":
                 break
             delta = json.loads(chunk)["choices"][0]["delta"].get("content", "")
+            if isinstance(delta, list):
+                delta = "".join(p.get("text", "") for p in delta
+                                if isinstance(p, dict))
             if delta:
                 on_chunk(delta)
 
@@ -292,6 +302,7 @@ class MainWindow(QMainWindow):
         self.chats = self._load_chats()
         self.current_chat = None
         self.worker = None
+        self._detached = []  # worker fermati ma non ancora terminati
 
         self.setWindowTitle(f"{APP_NAME} — client non ufficiale · v{APP_VERSION}")
         self.resize(1200, 760)
@@ -345,6 +356,7 @@ class MainWindow(QMainWindow):
         self.model_combo.setStyleSheet(
             f"background:{CARD};color:{FG};border:1px solid #26273a;"
             "border-radius:10px;padding:8px")
+        self.model_combo.currentTextChanged.connect(self._model_changed)
         side.addWidget(self.model_combo)
 
         refresh = QPushButton("⟳  Aggiorna modelli")
@@ -374,7 +386,10 @@ class MainWindow(QMainWindow):
         welcome = QWidget()
         wlay = QVBoxLayout(welcome)
         wlay.setAlignment(Qt.AlignCenter)
-        user = os.environ.get("USER") or "tu"
+        try:
+            user = getpass.getuser()
+        except Exception:  # noqa: BLE001
+            user = "tu"
         hour = datetime.now().hour
         greet = "Buongiorno" if hour < 13 else ("Buon pomeriggio" if hour < 18 else "Buonasera")
         big = QLabel(f"👋 {greet}, {user}!")
@@ -428,12 +443,21 @@ class MainWindow(QMainWindow):
         self.send_btn.setStyleSheet(
             f"background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 {ACCENT},stop:1 #ffb347);"
             "color:#14151f;font-weight:700;border:none;border-radius:14px;padding:0 22px")
-        self.send_btn.clicked.connect(self._on_send)
+        self.send_btn.clicked.connect(self._on_send_clicked)
         input_bar.addWidget(self.send_btn)
-        clay.addLayout(input_bar)
         self.stack.addWidget(chat_page)
 
-        root.addWidget(self.stack, 1)
+        right = QVBoxLayout()
+        right.setContentsMargins(0, 0, 0, 0)
+        right.setSpacing(0)
+        right.addWidget(self.stack, 1)
+        right.addLayout(input_bar)
+        root.addLayout(right, 1)
+
+        self._render_timer = QTimer(self)
+        self._render_timer.setSingleShot(True)
+        self._render_timer.setInterval(60)
+        self._render_timer.timeout.connect(self._render)
         central = QWidget()
         central.setLayout(root)
         self.setCentralWidget(central)
@@ -453,7 +477,7 @@ class MainWindow(QMainWindow):
         for f in sorted(CHATS_DIR.glob("*.json"), key=os.path.getmtime,
                         reverse=True):
             try:
-                chats.append(json.loads(f.read_text()))
+                chats.append(json.loads(f.read_text(encoding="utf-8")))
             except Exception:
                 continue
         return chats
@@ -468,14 +492,21 @@ class MainWindow(QMainWindow):
     def _chat_path(self, chat_id):
         return CHATS_DIR / f"{chat_id}.json"
 
-    def _save_current(self):
-        if self.current_chat:
+    def _save_chat(self, chat):
+        if chat and chat.get("messages"):
             CHATS_DIR.mkdir(parents=True, exist_ok=True)
-            self._chat_path(self.current_chat["id"]).write_text(
-                json.dumps(self.current_chat, indent=2))
+            self._chat_path(chat["id"]).write_text(
+                json.dumps(chat, indent=2, ensure_ascii=False),
+                encoding="utf-8")
+
+    def _save_current(self):
+        self._save_chat(self.current_chat)
 
     def new_chat(self):
         self._stop_worker()
+        if self.current_chat is not None and not self.current_chat["messages"]:
+            self.stack.setCurrentIndex(0)  # c'è già una chat vuota: riusala
+            return
         now = datetime.now().isoformat(timespec="seconds")
         chat = {"id": now.replace(":", "-").replace(".", "-"),
                 "title": "Nuova chat", "messages": [], "created": now}
@@ -488,31 +519,62 @@ class MainWindow(QMainWindow):
         self._stop_worker()
         chat_id = item.data(Qt.UserRole)
         self.current_chat = next(c for c in self.chats if c["id"] == chat_id)
+        # scarta le chat vuote create e mai usate
+        self.chats = [c for c in self.chats
+                      if c["messages"] or c is self.current_chat]
+        self._refresh_chat_list()
         self._render()
-        self.stack.setCurrentIndex(1)
+        self.stack.setCurrentIndex(1 if self.current_chat["messages"] else 0)
 
     # ------------------------------------------------------------- motore UI
 
     def _engine_changed(self, *_):
         self.settings["engine"] = self.engine_combo.currentData()
+        self._populate_models(self._detect_models())
+
+    def _detect_models(self):
+        """Modelli realmente disponibili (timeout breve); [] se non raggiungibile."""
         try:
-            self.model_combo.currentTextChanged.disconnect(self._model_changed)
-        except Exception:
+            if self.settings["engine"] == "ollama":
+                return list_ollama_models(self.settings["ollama_host"], timeout=1.5)
+            if self.settings.get("mistral_api_key"):
+                return list_mistral_models(self.settings["mistral_api_key"])
+        except Exception:  # noqa: BLE001
             pass
+        return []
+
+    def _populate_models(self, models):
+        ollama = self.settings["engine"] == "ollama"
+        key = "model_ollama" if ollama else "model_mistral"
+        saved = self.settings.get(key, "")
+        detected = bool(models)
+        if not detected:
+            models = (["devstral-small-2:24b", "codestral:22b", "mistral-small3.2:24b"]
+                      if ollama else
+                      ["mistral-medium-latest", "mistral-large-latest",
+                       "devstral-latest", "codestral-latest"])
+        if saved and saved not in models:
+            if detected:
+                saved = models[0]          # il modello salvato non è installato
+                self.settings[key] = saved
+                save_settings(self.settings)
+            else:
+                models = [saved] + models  # elenco di riserva: tieni la scelta
+        self.model_combo.blockSignals(True)
         self.model_combo.clear()
-        fallback = (["devstral-small-2:24b", "codestral:22b", "mistral-small3.2:24b"]
-                    if self.settings["engine"] == "ollama"
-                    else ["mistral-medium-latest", "mistral-large-latest",
-                          "devstral-latest", "codestral-latest"])
-        self.model_combo.addItems(fallback)
-        saved = self.settings.get("model_ollama" if self.settings["engine"] == "ollama"
-                                  else "model_mistral")
+        self.model_combo.addItems(models)
         i = self.model_combo.findText(saved)
-        if i >= 0:
-            self.model_combo.setCurrentIndex(i)
-        self.model_combo.currentTextChanged.connect(self._model_changed)
+        self.model_combo.setCurrentIndex(max(i, 0))
+        self.model_combo.blockSignals(False)
+        if self.model_combo.currentText():
+            self.settings[key] = self.model_combo.currentText()
+        self.status.setText(
+            ("core: Rust (PyO3) ⚡" if HAS_RUST_CORE else "core: Python") +
+            (f" · {len(models)} modelli" if detected else " · elenco modelli di riserva"))
 
     def _model_changed(self, text):
+        if not text:
+            return
         key = "model_ollama" if self.settings["engine"] == "ollama" else "model_mistral"
         self.settings[key] = text
         save_settings(self.settings)
@@ -529,9 +591,10 @@ class MainWindow(QMainWindow):
                     return
                 models = list_mistral_models(key)
             if models:
-                self.model_combo.clear()
-                self.model_combo.addItems(models)
-                self.status.setText(f"{len(models)} modelli disponibili ⚡")
+                self._populate_models(models)
+            else:
+                QMessageBox.information(self, APP_NAME,
+                                        "Nessun modello trovato. Con Ollama: ollama pull <modello>")
         except Exception as e:  # noqa: BLE001
             QMessageBox.warning(self, APP_NAME, f"Impossibile elencare i modelli:\n{e}")
 
@@ -549,9 +612,6 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------- messaging
 
     def quick_send(self, text):
-        if self.current_chat is None:
-            self.new_chat()
-        self.stack.setCurrentIndex(1)
         self.send(text)
 
     def _render(self):
@@ -563,11 +623,20 @@ class MainWindow(QMainWindow):
         sb = self.view.verticalScrollBar()
         sb.setValue(sb.maximum())
 
+    def _is_running(self):
+        return bool(self.worker and self.worker.isRunning())
+
     def _on_send(self):
         self.send(self.input.toPlainText().strip())
 
+    def _on_send_clicked(self):
+        if self._is_running():
+            self._stop_worker()
+        else:
+            self._on_send()
+
     def send(self, text):
-        if not text or (self.worker and self.worker.isRunning()):
+        if not text or self._is_running():
             return
         if self.current_chat is None:
             self.new_chat()
@@ -576,58 +645,79 @@ class MainWindow(QMainWindow):
         if chat["title"] == "Nuova chat":
             chat["title"] = text[:42]
             self._refresh_chat_list()
-        chat["messages"].append({"role": "assistant", "content": "",
-                                  "model": self.model_combo.currentText()})
+        reply = {"role": "assistant", "content": "",
+                 "model": self.model_combo.currentText()}
+        chat["messages"].append(reply)
         self.input.clear()
+        self.stack.setCurrentIndex(1)
         self._render()
 
         sys_prompt = self.settings.get("system_prompt", "")
         history = ([{"role": "system", "content": sys_prompt}]
-                    if sys_prompt else [])
+                   if sys_prompt else [])
         for m in chat["messages"]:
-            if m["role"] == "user" or m["content"]:
-                history.append({"role": m["role"], "content": m["content"]})
+            if m.get("error") or (m["role"] == "assistant" and not m["content"]):
+                continue  # niente errori né risposte vuote nel contesto
+            history.append({"role": m["role"], "content": m["content"]})
 
-        self.worker = ChatWorker(self.settings, history)
-        self.worker.chunk.connect(self._on_chunk)
-        self.worker.finished_ok.connect(self._on_done)
-        self.worker.failed.connect(self._on_error)
+        worker = ChatWorker(dict(self.settings), history)
+        self.worker = worker
+        # ogni segnale resta legato al SUO worker, alla SUA chat e al SUO messaggio:
+        # se nel frattempo cambi chat, i segnali in ritardo non sporcano nulla
+        worker.chunk.connect(
+            lambda piece, w=worker, c=chat, r=reply: self._on_chunk(w, c, r, piece))
+        worker.finished_ok.connect(lambda w=worker, c=chat: self._on_done(w, c))
+        worker.failed.connect(
+            lambda msg, w=worker, c=chat, r=reply: self._on_error(w, c, r, msg))
         self.send_btn.setText("■ Stop")
-        self.send_btn.clicked.disconnect()
-        self.send_btn.clicked.connect(self._stop_worker)
-        self.worker.start()
+        worker.start()
 
-    def _on_chunk(self, piece):
-        self.current_chat["messages"][-1]["content"] += piece
-        self._render()
+    def _on_chunk(self, worker, chat, reply, piece):
+        reply["content"] += piece
+        if chat is self.current_chat and not self._render_timer.isActive():
+            self._render_timer.start()
 
-    def _on_done(self):
-        self._finish_turn()
+    def _on_done(self, worker, chat):
+        if worker is self.worker:
+            self._finish_turn(chat)
 
-    def _on_error(self, msg):
-        chat = self.current_chat
-        if chat and chat["messages"][-1]["content"] == "":
-            chat["messages"][-1]["content"] = f"⚠️ {msg}"
-        self._render()
-        self._finish_turn()
+    def _on_error(self, worker, chat, reply, msg):
+        if not reply["content"]:
+            reply["content"] = f"⚠️ {msg}"
+            reply["error"] = True
+        else:
+            self.status.setText(f"⚠️ {msg}")
+        if chat is self.current_chat:
+            self._render()
+        if worker is self.worker:
+            self._finish_turn(chat)
 
-    def _stop_worker(self):
-        if self.worker and self.worker.isRunning():
-            self.worker.stop()
-            self.worker.wait(2000)
-        self._finish_turn()
+    def _stop_worker(self, force=False):
+        w = self.worker
+        if w and w.isRunning():
+            w.stop()
+            # Il thread può restare bloccato nella rete (es. Ollama che carica il
+            # modello): non lo aspetto, lo "stacco". L'interfaccia torna subito
+            # libera e il thread muore da solo alla prossima lettura.
+            self._detached.append(w)
+            w.finished.connect(lambda w=w: self._detached.remove(w)
+                               if w in self._detached else None)
+            self.worker = None
+        if force:  # chiusura dell'app: niente thread vivi
+            for t in list(self._detached):
+                if not t.wait(1000):
+                    t.terminate()
+                    t.wait(500)
+        self._finish_turn(self.current_chat)
 
-    def _finish_turn(self):
-        self._save_current()
-        try:
-            self.send_btn.clicked.disconnect()
-        except Exception:
-            pass
+    def _finish_turn(self, chat):
+        self._save_chat(chat)
         self.send_btn.setText("Invia ▲")
-        self.send_btn.clicked.connect(self._on_send)
+        if chat is self.current_chat:
+            self._render()
 
     def eventFilter(self, obj, event):
-        if obj is self.input and event.type() == event.KeyPress:
+        if obj is self.input and event.type() == QEvent.Type.KeyPress:
             if event.key() in (Qt.Key_Return, Qt.Key_Enter) and not (
                     event.modifiers() & Qt.ShiftModifier):
                 self._on_send()
@@ -635,8 +725,7 @@ class MainWindow(QMainWindow):
         return super().eventFilter(obj, event)
 
     def closeEvent(self, e):
-        self._stop_worker()
-        self._save_current()
+        self._stop_worker(force=True)
         super().closeEvent(e)
 
 
