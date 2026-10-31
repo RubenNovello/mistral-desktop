@@ -10,13 +10,14 @@ jobs:
   snapcraft:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Build snap
         uses: snapcore/action-build@v1
         id: snapcraft
 
-      - name: Publish to Snap Store (solo su tag v*)
+      - name: Publish to Snap Store
         if: startsWith(github.ref, 'refs/tags/v')
         uses: snapcore/action-publish@v1
         env:
