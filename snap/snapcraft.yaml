@@ -10,7 +10,7 @@ license: MIT
 base: core22
 grade: stable
 confinement: strict
-version: '0.1.0'
+version: '0.1.1'
 # NOTA: prima del publish nello store aggiungi snap/gui/icon.png (512x512)
 # snapcraft la userà automaticamente come icona dello snap.
 

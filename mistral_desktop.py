@@ -37,7 +37,7 @@ from PySide6.QtWidgets import (
 )
 
 APP_NAME = "Mistral Desktop"
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.1.1"
 ORG = "mistral-desktop-community"
 
 CONFIG_DIR = Path.home() / ".config" / "mistral-desktop"
