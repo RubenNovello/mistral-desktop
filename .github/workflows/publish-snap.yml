@@ -8,7 +8,7 @@ on:
 
 jobs:
   snapcraft:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04   # <-- Modificato da ubuntu-24.04 a ubuntu-22.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
