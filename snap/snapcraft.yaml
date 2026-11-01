@@ -14,15 +14,11 @@ version: '1.0.0'
 
 apps:
   mistral-desktop:
-    command: bin/main.py
+    command: usr/bin/mistral-desktop
     extensions: [gnome]
-    icon: meta/gui/logo.jpeg
-    plugs:
-      - desktop
-      - home
-      - network
-      - wayland
-      - x11
+    common-id: mistral-desktop.desktop
+    desktop: snap/gui/mistral-desktop.desktop
+    icon: snap/gui/logo.jpeg
 
 parts:
   # script principale dell'app
