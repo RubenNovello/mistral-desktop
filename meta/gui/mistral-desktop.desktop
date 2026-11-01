@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Mistral Desktop
-Comment=Client desktop non ufficiale per Mistral AI
-Exec=mistral-desktop
-Icon=${SNAP}/meta/gui/logo.jpeg
-Terminal=false
-Type=Application
-Categories=Utility;Chat;
