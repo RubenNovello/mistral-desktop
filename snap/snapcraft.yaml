@@ -16,6 +16,7 @@ apps:
   mistral-desktop:
     command: bin/main.py
     extensions: [gnome]
+    icon: meta/gui/logo.jpeg
     plugs:
       - desktop
       - home
