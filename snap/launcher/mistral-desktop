@@ -1,7 +1,10 @@
 #!/bin/sh
 PLUGDIR=$(find "$SNAP/usr/lib" -type d -path '*PySide6/Qt/plugins' 2>/dev/null | head -n1)
 if [ -n "$PLUGDIR" ]; then
+  QTDIR=${PLUGDIR%/plugins}
   export QT_PLUGIN_PATH="$PLUGDIR"
+  [ -d "$QTDIR/resources" ] && export QTWEBENGINE_RESOURCES_PATH="$QTDIR/resources"
 fi
 export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
-exec "$SNAP/bin/python" "$SNAP/mistral_desktop.py" "$@"
+export QTWEBENGINE_DISABLE_SANDBOX=1
+exec "$SNAP/bin/python" "$SNAP/main.py" "$@"

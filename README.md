@@ -32,8 +32,8 @@ sudo apt install python3-venv libxcb-cursor0
 git clone https://github.com/RubenNovello/mistral-desktop.git
 cd mistral-desktop
 python3 -m venv .venv && source .venv/bin/activate
-pip install PySide6 requests
-python mistral_desktop.py
+pip install PySide6
+python main.py
 ```
 
 Se compare l'errore `Could not load the Qt platform plugin "xcb"`, manca `libxcb-cursor0`
