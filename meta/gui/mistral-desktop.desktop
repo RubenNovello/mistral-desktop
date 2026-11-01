@@ -1,9 +1,8 @@
 [Desktop Entry]
-Name=Mistral AI
-Comment=Desktop client for Mistral AI
-Exec=mistral-desktop %U
-Icon=${SNAP}/meta/gui/icon.png
+Name=Mistral Desktop
+Comment=Client desktop non ufficiale per Mistral AI
+Exec=mistral-desktop
+Icon=${SNAP}/meta/gui/logo.jpeg
 Terminal=false
 Type=Application
-StartupWMClass=mistral-desktop
-Categories=Utility;Network;
+Categories=Utility;Chat;
