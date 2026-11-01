@@ -10,23 +10,18 @@ license: MIT
 base: core22
 grade: stable
 confinement: strict
-version: '0.1.1'
-# NOTA: prima del publish nello store aggiungi snap/gui/icon.png (512x512)
-# snapcraft la userà automaticamente come icona dello snap.
+version: '1.0.0'
 
 apps:
   mistral-desktop:
-    command: bin/mistral-desktop
-    desktop: snap/gui/mistral-desktop.desktop
+    command: bin/main.py
+    extensions: [gnome]
     plugs:
+      - desktop
       - home
       - network
-      - network-bind
       - wayland
       - x11
-      - opengl
-      - desktop
-      - desktop-legacy
 
 parts:
   # script principale dell'app
@@ -34,7 +29,7 @@ parts:
     plugin: dump
     source: .
     stage:
-      - mistral_desktop.py
+      - main.py
 
   # ambiente Python con PySide6 + requests
   python-deps:
@@ -67,5 +62,3 @@ parts:
     source: snap/launcher
     organize:
       mistral-desktop: bin/mistral-desktop
-
-  # NOTA fase 2: aggiungere il core Rust con il plugin `rust` + maturin
