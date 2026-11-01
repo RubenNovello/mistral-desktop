@@ -1,6 +1,6 @@
 <div align="center">
 
-# ✦ Mistral Desktop
+# Mistral Desktop
 
 **Client desktop non ufficiale per Mistral AI**
 
@@ -14,7 +14,6 @@ Chat con i modelli Mistral direttamente dal tuo desktop — gratis, open source 
 
 ## ✨ Caratteristiche
 
-- 🦙 **Ollama locale** — gratis, privato, funziona offline
 - ☁️ **API Mistral** — i modelli ufficiali nel cloud
 - 🔀 Switch motore con un clic, modelli rilevati automaticamente
 - ⚡ Core di streaming in **Rust** (PyO3) — opzionale, usato in automatico se installato
