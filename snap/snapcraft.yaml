@@ -1,16 +1,18 @@
 name: mistral-desktop
 title: Mistral Desktop (unofficial)
-summary: Client desktop non ufficiale per Mistral AI — Ollama locale o API
+summary: Client desktop non ufficiale per Mistral AI
 description: |
-  Chat con i modelli Mistral direttamente dal desktop.
-  Due motori selezionabili: Ollama locale (gratis, privacy, offline)
-  oppure API Mistral. Client community, non affiliato a Mistral AI.
+  La chat di Mistral AI in una finestra dedicata sul tuo desktop.
+  Accedi una volta sola (Google, Apple o email) e la sessione resta
+  salvata, come nel browser. Nessun telemetry: è solo una finestra
+  che parla con chat.mistral.ai. Client community, non affiliato
+  a Mistral AI.
   Made in Italy 🇮🇹, con l'IA della Francia 🇫🇷, per tutta l'Europa 🇪🇺.
 license: MIT
 base: core22
 grade: stable
 confinement: strict
-version: '1.0.1'
+version: '1.0.2'
 
 apps:
   mistral-desktop:
@@ -50,8 +52,6 @@ parts:
       - libxcb-xkb1
       - libxkbcommon0
       - libxkbcommon-x11-0
-      - libgl1
-      - libegl1
       - libfontconfig1
       - libglib2.0-0
       - libdbus-1-3
@@ -71,6 +71,6 @@ parts:
   # launcher
   launcher:
     plugin: dump
-    source: snap/launcher
+    source: snap/local/launcher
     organize:
       mistral-desktop: bin/mistral-desktop
