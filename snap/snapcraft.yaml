@@ -9,10 +9,11 @@ description: |
   a Mistral AI.
   Made in Italy 🇮🇹, con l'IA della Francia 🇫🇷, per tutta l'Europa 🇪🇺.
 license: MIT
+icon: snap/gui/icon.png
 base: core22
 grade: stable
 confinement: strict
-version: '1.0.2'
+version: '1.0.3'
 
 apps:
   mistral-desktop:
