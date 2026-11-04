@@ -49,10 +49,6 @@ pip install target/wheels/*.whl
 
 L'app rileva il core Rust da sola (vedrai "core: Rust ⚡" nella barra di stato).
 
-## 🔧 Requisiti
-
-- [Ollama](https://ollama.com) in esecuzione (`ollama serve`), **oppure** una [API key Mistral](https://console.mistral.ai)
-
 ## 🐦 Filosofia
 
 Questo progetto nasce da una filosofia completamente **Open**: Open Minded, Open Source, Free/Libre.
