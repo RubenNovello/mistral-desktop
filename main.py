@@ -7,9 +7,32 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QIcon
 
 class MistralWebPage(QWebEnginePage):
+    def __init__(self, profile, parent):
+        super().__init__(profile, parent)
+        # I pulsanti "copia" dei siti usano navigator.clipboard,
+        # che chiede il permesso: qui lo concediamo invece di negarlo in silenzio.
+        self.permissionRequested.connect(self._on_permission)
+        self.featurePermissionRequested.connect(self._on_feature_permission)
+
+    def _on_permission(self, permission):
+        try:
+            from PySide6.QtWebEngineCore import QWebEnginePermission
+            if permission.permissionType() in (
+                QWebEnginePermission.PermissionType.ClipboardReadWrite,
+                QWebEnginePermission.PermissionType.ClipboardSanitizedWrite,
+            ):
+                permission.grant()
+            else:
+                permission.deny()
+        except Exception:
+            permission.grant()
+
+    def _on_feature_permission(self, url, feature):
+        # Compatibilità con Qt più vecchi: concede ClipboardReadWrite
+        self.setFeaturePermission(url, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
+
     def createWindow(self, _type):
         return self
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
