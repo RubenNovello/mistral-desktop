@@ -20,3 +20,4 @@ AppDir/
 .DS_Store
 .vscode/
 .idea/
+app.log
