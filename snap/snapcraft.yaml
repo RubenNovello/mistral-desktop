@@ -13,7 +13,7 @@ icon: snap/gui/icon.png
 base: core22
 grade: stable
 confinement: strict
-version: '1.0.3'
+version: '1.0.4'
 
 apps:
   mistral-desktop:
