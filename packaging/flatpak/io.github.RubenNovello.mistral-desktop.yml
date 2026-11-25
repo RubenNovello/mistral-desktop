@@ -1,0 +1,37 @@
+app-id: io.github.RubenNovello.mistral-desktop
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
+base: io.qt.PySide.BaseApp
+base-version: '6.11'
+command: mistral-desktop
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+
+modules:
+  - name: mistral-desktop
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 main.py ${FLATPAK_DEST}/share/mistral-desktop/main.py
+      - install -Dm755 launcher.sh ${FLATPAK_DEST}/bin/mistral-desktop
+      - install -Dm644 mistral-desktop.desktop ${FLATPAK_DEST}/share/applications/io.github.RubenNovello.mistral-desktop.desktop
+      - install -Dm644 icon.png ${FLATPAK_DEST}/share/icons/hicolor/512x512/apps/io.github.RubenNovello.mistral-desktop.png
+      - install -Dm644 io.github.RubenNovello.mistral-desktop.metainfo.xml ${FLATPAK_DEST}/share/metainfo/io.github.RubenNovello.mistral-desktop.metainfo.xml
+    sources:
+      - type: file
+        path: ../../main.py
+      - type: file
+        path: launcher.sh
+      - type: file
+        path: ../../snap/gui/mistral-desktop.desktop
+        dest-filename: mistral-desktop.desktop
+      - type: file
+        path: ../../snap/gui/icon.png
+        dest-filename: icon.png
+      - type: file
+        path: io.github.RubenNovello.mistral-desktop.metainfo.xml

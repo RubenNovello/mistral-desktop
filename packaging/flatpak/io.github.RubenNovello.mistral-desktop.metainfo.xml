@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.RubenNovello.mistral-desktop</id>
+  <name>Mistral Desktop (unofficial)</name>
+  <summary>Client desktop non ufficiale per Mistral AI</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <url type="homepage">https://github.com/RubenNovello/mistral-desktop</url>
+
+  <description>
+    <p>
+      La chat di Mistral AI in una finestra dedicata sul tuo desktop.
+      Accedi una volta sola (Google, Apple o email) e la sessione resta
+      salvata, come nel browser. I link esterni si aprono nel browser
+      predefinito di sistema.
+    </p>
+    <p>
+      Client community, non affiliato a Mistral AI.
+    </p>
+    <p>
+      Made in Italy 🇮🇹, con l'IA della Francia 🇫🇷, per tutta l'Europa 🇪🇺.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.RubenNovello.mistral-desktop.desktop</launchable>
+
+  <developer id="io.github.RubenNovello">
+    <name>Ruben Novello</name>
+  </developer>
+
+  <content_rating type="oars-1.0">
+    <content_attribute id="social-chat">intense</content_attribute>
+  </content_rating>
+
+  <releases>
+    <release version="1.0.5" date="2026-11-23">
+      <description>
+        <p>I link esterni si aprono nel browser di sistema.</p>
+      </description>
+    </release>
+    <release version="1.0.4" date="2026-11-14">
+      <description>
+        <p>Il pulsante copia degli snippet funziona correttamente.</p>
+      </description>
+    </release>
+  </releases>
+</component>

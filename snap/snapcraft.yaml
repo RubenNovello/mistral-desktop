@@ -14,6 +14,10 @@ base: core22
 grade: stable
 confinement: strict
 version: '1.0.5'
+contact: https://github.com/RubenNovello/mistral-desktop
+issues: https://github.com/RubenNovello/mistral-desktop/issues
+source-code: https://github.com/RubenNovello/mistral-desktop
+website: https://github.com/RubenNovello/mistral-desktop
 
 apps:
   mistral-desktop:
