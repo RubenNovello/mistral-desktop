@@ -5,4 +5,4 @@ Exec=mistral-desktop
 Icon=io.github.RubenNovello.mistral-desktop
 Terminal=false
 Type=Application
-Categories=Utility;Chat;
+Categories=Network;Chat;
