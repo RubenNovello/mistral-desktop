@@ -25,4 +25,4 @@ modules:
     sources:
       - type: git
         url: https://github.com/RubenNovello/mistral-desktop.git
-        commit: 56e659c18f8eeb6f6479a53189433d05054206d3
+        commit: 2bf49d210a095960facf6e042a8346adeda65ed2
